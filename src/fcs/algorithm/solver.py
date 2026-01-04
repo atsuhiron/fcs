@@ -76,5 +76,5 @@ def solve(
         target=target_traj,
         projectile=projectile_traj,
         approx_distance=norm[min_index],
-        approx_index=min_index,
+        approx_index=int(min_index),
     )

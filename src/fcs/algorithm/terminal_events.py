@@ -8,7 +8,7 @@ from fcs.util import reconstruct_target_trajectory
 
 class TerminalEvent(abc.ABC):
     @abc.abstractmethod
-    def __call__(self, _: float, state: State, *__: object) -> float:
+    def __call__(self, t: float, state: State, *__: object) -> float:
         pass
 
     @property

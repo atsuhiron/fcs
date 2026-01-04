@@ -23,7 +23,7 @@ Additionally, the parameters related to air resistance are as follows:
 Air density is expressed according to the International Standard Atmosphere (ISA) model 
 using the following equation:
 ```math
-D(z) = D_0 * \left( 1 - \frac{Lz}{T_0} \right) ^{h_0}
+D(z) = D_0 \left( 1 - \frac{Lz}{T_0} \right) ^{h_0}
 ```
 When initial velocity and mass are kept constant, the trajectory changes as shown in the following graph when multiple conditions are altered.
 ![Sparse density amplified result](images/trajectory_sample.png)
