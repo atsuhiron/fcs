@@ -1,0 +1,20 @@
+target-version = "py313"
+line-length = 119
+
+[lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "COM812",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = [
+    "F401"      # The imported class is rarely used within __init__.py
+]
+
+
+[format]
+indent-style = "space"
+quote-style = "double"
+skip-magic-trailing-comma = false
