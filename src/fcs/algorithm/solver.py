@@ -19,7 +19,7 @@ def create_init_state(init_cond: InitCond, runtime_const: RuntimeConst) -> State
 
 
 def air_density(z: float, atoms_model: AtmosphereModel) -> float:
-    coef = np.power(1 - (z * atoms_model.lapse_rate / atoms_model.std_temp), atoms_model.index)
+    coef = np.power(1 - (z * atoms_model.lapse_rate / atoms_model.std_temp), atoms_model.index_)
     return atoms_model.std_density * coef
 
 
@@ -73,8 +73,7 @@ def solve(
     min_index = np.argmin(norm)
     return TrajectoryResult(
         t=sol.t,
-        target=target_traj,
-        projectile=projectile_traj,
-        approx_distance=norm[min_index],
+        target_traj=target_traj,
+        projectile_traj=projectile_traj,
         approx_index=int(min_index),
     )

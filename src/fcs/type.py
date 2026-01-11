@@ -8,11 +8,14 @@ type Vector3 = tuple[float, float, float]
 type StateEquation = Callable[[float, State], State]
 
 
+# Solving ODE
+
+
 class AtmosphereModel(NamedTuple):
     std_density: float = 1.225  # kg/m^3
     std_temp: float = 288.15  # K
     lapse_rate: float = 0.0065  # K/m
-    index: float = 5.256
+    index_: float = 5.256
 
 
 class InitCond(NamedTuple):
@@ -33,7 +36,19 @@ class RuntimeConst(NamedTuple):
 
 class TrajectoryResult(NamedTuple):
     t: np.ndarray
-    projectile: np.ndarray
-    target: np.ndarray
-    approx_distance: float
+    projectile_traj: np.ndarray
+    target_traj: np.ndarray
     approx_index: int
+
+
+# Approximate Decision
+
+
+class QuadraticParam(NamedTuple):
+    a: float
+    b: float
+    c: float
+    phi: float
+    phi_std: float
+    rx_dmain: tuple[float, float]
+    rmse: float
