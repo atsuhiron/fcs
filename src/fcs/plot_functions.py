@@ -3,8 +3,8 @@ from collections.abc import Sequence
 import numpy as np
 from matplotlib import pyplot as plt
 
-from fcs.algorithm.approximate_decision import rotate_xy
-from fcs.type import QuadraticParam, TrajectoryResult
+from fcs.algorithm.approximate_decision import reconstruct_quadratic, rotate_xy
+from fcs.type import ApproximateParam, TrajectoryResult
 
 
 def plot_xz(trajectory_results: Sequence[TrajectoryResult], names: Sequence[str] | None = None) -> None:
@@ -19,21 +19,22 @@ def plot_xz(trajectory_results: Sequence[TrajectoryResult], names: Sequence[str]
     plt.show()
 
 
-def plot_rotated_xz(trajectory_result: TrajectoryResult, q: QuadraticParam) -> None:
+def plot_rotated_xz(trajectory_result: TrajectoryResult, ap: ApproximateParam) -> None:
     x = trajectory_result.projectile_traj[0]
     y = trajectory_result.projectile_traj[1]
     z = trajectory_result.projectile_traj[2]
 
     # plot trajectory
-    x_rotated, _ = rotate_xy(x, y, -q.phi)
+    x_rotated, _ = rotate_xy(x, y, -ap.phi)
     plt.plot(x_rotated, z, "o", label="projectile", markersize=4)
 
     # plot quadratic approximation
-    x_fit = np.linspace(q.rx_dmain[0], q.rx_dmain[1], 100)
-    z_fit = q.a * x_fit**2 + q.b * x_fit + q.c
+    t = np.linspace(ap.x_param.domain[0], ap.x_param.domain[1], 100)
+    x_fit = reconstruct_quadratic(ap.x_param, t)
+    z_fit = reconstruct_quadratic(ap.z_param, t)
     plt.plot(x_fit, z_fit, "-", label="approximation", color="red", lw=2)
 
-    plt.title(f"Rotation angle φ = {np.rad2deg(q.phi):.2f}° ± {np.rad2deg(q.phi_std):.2f}°, RMSE = {q.rmse:.4f}")
+    plt.title(f"φ = {np.rad2deg(ap.phi):.2f}° ± {np.rad2deg(ap.phi_std):.2f}°, RMSE_z = {ap.x_param.rmse:.4f}")
     plt.legend()
     plt.xlabel("X' axis")
     plt.ylabel("Z axis")

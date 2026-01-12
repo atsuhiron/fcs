@@ -48,7 +48,12 @@ class QuadraticParam(NamedTuple):
     a: float
     b: float
     c: float
+    domain: tuple[float, float]
+    rmse: float
+
+
+class ApproximateParam(NamedTuple):
+    x_param: QuadraticParam
+    z_param: QuadraticParam
     phi: float
     phi_std: float
-    rx_dmain: tuple[float, float]
-    rmse: float
