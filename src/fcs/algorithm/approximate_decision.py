@@ -60,8 +60,8 @@ def rotate_xy(x: np.ndarray, y: np.ndarray, phi: float) -> tuple[np.ndarray, np.
     """
     cos_phi = np.cos(phi)
     sin_phi = np.sin(phi)
-    x_rotated = x * cos_phi + y * sin_phi
-    y_rotated = -x * sin_phi + y * cos_phi
+    x_rotated = x * cos_phi - y * sin_phi
+    y_rotated = x * sin_phi + y * cos_phi
     return x_rotated, y_rotated
 
 
