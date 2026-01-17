@@ -1,6 +1,9 @@
 import numpy as np
 
-from fcs.type import ApproximateParam, QuadraticParam, TrajectoryResult
+from fcs.algorithm.quartic_minimum import find_minimum_qurtic
+from fcs.type import ApproximateParam, ApproximateResult, QuadraticParam, TrajectoryResult, Vector3
+
+type N = float | np.ndarray
 
 
 def slice_adjacent(array: np.ndarray, target_index: int, width: int = 2) -> np.ndarray:
@@ -40,7 +43,7 @@ def slice_adjacent(array: np.ndarray, target_index: int, width: int = 2) -> np.n
     return array[start_index:end_index]
 
 
-def rotate_xy(x: np.ndarray, y: np.ndarray, phi: float) -> tuple[np.ndarray, np.ndarray]:
+def rotate_xy[T: N](x: T, y: T, phi: float) -> tuple[T, T]:
     """
     Rotate coordinates (x, y) by angle phi.
 
@@ -109,7 +112,7 @@ def calc_quadratic_param(traj_result: TrajectoryResult) -> ApproximateParam:
     )
 
 
-def reconstruct_quadratic(q_param: QuadraticParam, t: np.ndarray) -> np.ndarray:
+def reconstruct_quadratic[T: N](q_param: QuadraticParam, t: T) -> T:
     """
     Reconstructs the quadratic function values at given time points.
 
@@ -128,52 +131,44 @@ def reconstruct_quadratic(q_param: QuadraticParam, t: np.ndarray) -> np.ndarray:
     return q_param.a * t**2 + q_param.b * t + q_param.c
 
 
-def _solve_cubic_eq(b3: complex, b2: complex, b1: complex, b0: complex) -> tuple[complex, complex, complex]:
-    c1 = -2 * b2**3 + 9 * b1 * b2 * b3 - 27 * b0 * b3**2
-    c4 = -(b2**2) + 3 * b1 * b3
-    c3 = c1**2 + 4 * c4**3
-    c2 = np.power(c1 + np.sqrt(c3), 1 / 3)
+def find_approximation(
+    approx_param: ApproximateParam,
+    t_pos: Vector3,
+    t_dir: Vector3,
+) -> ApproximateResult:
+    cos = np.cos(approx_param.phi)
+    sin = np.sin(approx_param.phi)
 
-    c5 = -b2 / 3 / b3
-    c6 = 3 * np.power(2, 1 / 3) * b3
-    c7 = complex(0, float(np.sqrt(3)))
+    m11 = approx_param.x_param.a
+    m12 = approx_param.x_param.b - t_dir[0] * cos - t_dir[1] * sin
+    m13 = approx_param.x_param.c - t_pos[0] * cos - t_pos[1] * sin
+    m22 = t_dir[0] * sin - t_dir[1] * cos
+    m23 = t_pos[0] * sin - t_pos[1] * cos
+    m31 = approx_param.z_param.a
+    m32 = approx_param.z_param.b - t_dir[2]
+    m33 = approx_param.z_param.c - t_pos[2]
 
-    x1 = c5 + c2 / c6 - np.power(2, 1 / 3) * c4 / (3 * c2 * b3)
-    x2 = c5 - (1 - c7) * c2 / (2 * c6) + (1 + c7) * c4 / (3 * np.power(2, 2 / 3) * c2 * b3)
-    x3 = c5 - (1 + c7) * c2 / (2 * c6) + (1 - c7) * c4 / (3 * np.power(2, 2 / 3) * c2 * b3)
+    a4 = m11**2 + m31**2
+    a3 = 2 * (m11 * m12 + m31 * m32)
+    a2 = 2 * m11 * m13 + m12**2 + m22**2 + 2 * m31 * m33 + m32**2
+    a1 = 2 * (m12 * m13 + m22 * m23 + m32 * m33)
+    a0 = m13**2 + m23**2 + m33**2
 
-    return x1, x2, x3
+    t_min, distance_min = find_minimum_qurtic(a4, a3, a2, a1, a0)
+    target_pos = (
+        t_pos[0] + t_min * t_dir[0],
+        t_pos[1] + t_min * t_dir[1],
+        t_pos[2] + t_min * t_dir[2],
+    )
 
-
-def _q(x: np.ndarray, a4: float, a3: float, a2: float, a1: float, a0: float) -> np.ndarray:  # noqa: PLR0913
-    return a4 * x**4 + a3 * x**3 + a2 * x**2 + a1 * x + a0
-
-
-def _find_minimum_qurtic(a4: float, a3: float, a2: float, a1: float, a0: float) -> tuple[float, float]:
-    if a4 <= 0:
-        raise ValueError
-
-    # differential coef
-    b3 = complex(4 * a4)
-    b2 = complex(3 * a3)
-    b1 = complex(2 * a2)
-    b0 = complex(a1)
-
-    real_roots = np.array([x.real for x in _solve_cubic_eq(b3, b2, b1, b0) if np.isclose(x.imag, 0)])
-    y = _q(real_roots, a4, a3, a2, a1, a0)
-    min_index = np.argmin(y)
-    return real_roots[min_index], y[min_index]
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    a_arr = [0.1, -1, 1.5, -0.5, 0]
-    a_arr[0] = np.abs(a_arr[0])
-
-    xa = np.linspace(-2, 7, 100)
-    min_x, min_y = _find_minimum_qurtic(*a_arr)
-
-    plt.plot(xa, _q(xa, *a_arr))
-    plt.plot([min_x], _q(np.array([min_x]), *a_arr), "o")
-    plt.show()
+    proj_pos = rotate_xy(
+        reconstruct_quadratic(approx_param.x_param, t_min),
+        0,
+        approx_param.phi,
+    )
+    return ApproximateResult(
+        t=t_min,
+        distance=distance_min,
+        target_pos=target_pos,
+        proj_pos=(proj_pos[0], proj_pos[1], reconstruct_quadratic(approx_param.z_param, t_min)),
+    )

@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from fcs.algorithm.approximate_decision import reconstruct_quadratic, rotate_xy
-from fcs.type import ApproximateParam, TrajectoryResult
+from fcs.type import ApproximateParam, ApproximateResult, TrajectoryResult
 
 
 def plot_xz(trajectory_results: Sequence[TrajectoryResult], names: Sequence[str] | None = None) -> None:
@@ -41,7 +41,7 @@ def plot_rotated_xz(trajectory_result: TrajectoryResult, ap: ApproximateParam) -
     plt.show()
 
 
-def plot_3d(trajectory_result: TrajectoryResult) -> None:
+def plot_3d(trajectory_result: TrajectoryResult, aprox_res: ApproximateResult | None = None) -> None:
     px, py, pz = trajectory_result.projectile_traj
     tx, ty, tz = trajectory_result.target_traj
     approx_index = trajectory_result.approx_index
@@ -52,7 +52,16 @@ def plot_3d(trajectory_result: TrajectoryResult) -> None:
     ax.plot(px, py, pz, label="projectile", color="blue", lw=2)
     ax.plot(tx, ty, tz, label="target", color="red")
 
-    ax.scatter(px[approx_index], py[approx_index], pz[approx_index], label="approx", s=50)
+    if aprox_res:
+        ax.plot(
+            [aprox_res.proj_pos[0], aprox_res.target_pos[0]],
+            [aprox_res.proj_pos[1], aprox_res.target_pos[1]],
+            [aprox_res.proj_pos[2], aprox_res.target_pos[2]],
+            label="approx",
+            lw=3,
+        )
+    else:
+        ax.scatter(px[approx_index], py[approx_index], pz[approx_index], label="approx", s=50)
 
     ax.set_xlabel("X axis")
     ax.set_ylabel("Y axis")

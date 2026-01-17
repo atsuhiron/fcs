@@ -57,3 +57,10 @@ class ApproximateParam(NamedTuple):
     z_param: QuadraticParam
     phi: float
     phi_std: float
+
+
+class ApproximateResult(NamedTuple):
+    t: float
+    distance: float
+    target_pos: Vector3
+    proj_pos: Vector3

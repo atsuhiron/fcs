@@ -1,9 +1,9 @@
 import numpy as np
 
-from fcs.algorithm.approximate_decision import calc_quadratic_param
+from fcs.algorithm.approximate_decision import calc_quadratic_param, find_approximation
 from fcs.algorithm.solver import solve
 from fcs.algorithm.terminal_events import FallEvent
-from fcs.plot_functions import plot_rotated_xz
+from fcs.plot_functions import plot_3d
 from fcs.type import AtmosphereModel, InitCond, RuntimeConst
 
 if __name__ == "__main__":
@@ -18,4 +18,5 @@ if __name__ == "__main__":
     am = AtmosphereModel()
     res = solve(ic, rc, am, FallEvent(ic))
     aprox_param = calc_quadratic_param(res)
-    plot_rotated_xz(res, aprox_param)
+    approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
+    plot_3d(res, approx_result)
