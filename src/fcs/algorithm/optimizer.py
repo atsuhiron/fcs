@@ -43,8 +43,9 @@ def run(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> Optimize
     result = minimize(
         step,
         x0=np.array([initial_phi, initial_theta]),
-        method="Nelder-Mead",
-        options={"xatol": 1e-4, "fatol": 1e-4, "disp": False},
+        bounds=[(-np.pi, np.pi), (0, np.pi/2)],
+        method="L-BFGS-B",
+        options={"disp": False},
     )
 
     optimized_phi, optimized_theta = result.x
