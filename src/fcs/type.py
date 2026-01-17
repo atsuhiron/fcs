@@ -64,3 +64,12 @@ class ApproximateResult(NamedTuple):
     distance: float
     target_pos: Vector3
     proj_pos: Vector3
+
+
+class OptimizeResult(NamedTuple):
+    phi: float
+    theta: float
+    msec: float
+
+    def __str__(self) -> str:
+        return f"phi: {np.rad2deg(self.phi):.2f}°, theta: {np.rad2deg(self.theta):.2f}°, time: {self.msec:.2f} ms"
