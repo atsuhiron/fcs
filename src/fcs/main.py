@@ -16,7 +16,7 @@ if __name__ == "__main__":
     t_pos = (100, 100, 100)
     t_dir = (-10, 1, 0)
 
-    specifications= run(runtime_const, t_pos, t_dir)
+    specifications = run(runtime_const, t_pos, t_dir)
     print(specifications)  # noqa: T201
 
     ic = InitCond(theta=specifications.theta, phi=specifications.phi, t_pos=t_pos, t_dir=t_dir)
