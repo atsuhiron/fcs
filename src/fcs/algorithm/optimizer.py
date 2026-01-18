@@ -50,4 +50,4 @@ def run(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> Optimize
 
     optimized_phi, optimized_theta = result.x
     end = time.perf_counter()
-    return OptimizeResult(optimized_phi, optimized_theta, (end - start) * 1000)
+    return OptimizeResult(optimized_phi, optimized_theta, float(result.fun), (end - start) * 1000)

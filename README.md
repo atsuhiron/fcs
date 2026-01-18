@@ -32,6 +32,7 @@ When initial velocity and mass are kept constant, the trajectory changes as show
 Two angles, $(\phi, \theta)$ representing the aiming direction are output.
 - Azimuth $(\phi: -\pi \leq \phi \leq \pi)$
 - Elevation $(\theta: -\pi/2 \leq \theta \leq \pi/2)$
+- Distance
 
 ## Procedure
 Follow these steps to aim.

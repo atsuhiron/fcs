@@ -69,7 +69,13 @@ class ApproximateResult(NamedTuple):
 class OptimizeResult(NamedTuple):
     phi: float
     theta: float
+    distance: float
     msec: float
 
     def __str__(self) -> str:
-        return f"phi: {np.rad2deg(self.phi):.2f}°, theta: {np.rad2deg(self.theta):.2f}°, time: {self.msec:.2f} ms"
+        return (
+            f"phi: {np.rad2deg(self.phi):.2f}°, "
+            f"theta: {np.rad2deg(self.theta):.2f}°, "
+            f"dist: {self.distance: .2f}, "
+            f"time: {self.msec:.2f} ms"
+        )
