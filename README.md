@@ -26,4 +26,16 @@ using the following equation:
 D(z) = D_0 \left( 1 - \frac{Lz}{T_0} \right) ^{h_0}
 ```
 When initial velocity and mass are kept constant, the trajectory changes as shown in the following graph when multiple conditions are altered.
-![Sparse density amplified result](images/trajectory_sample.png)
+![trajectories](images/trajectory_sample.png)
+
+## Output Data
+Two angles, $(\phi, \theta)$ representing the aiming direction are output.
+- Azimuth $(\phi: -\pi \leq \phi \leq \pi)$
+- Elevation $(\theta: -\pi/2 \leq \theta \leq \pi/2)$
+
+## Procedure
+Follow these steps to aim.
+1. Define initial angles ($\phi_0, \theta_0$)
+2. Calculate the trajectory based on two angle measurements and the input data.
+3. Calculate the closest distance between the projectile and the target.
+4. Optimize the two angles to minimize this distance.
