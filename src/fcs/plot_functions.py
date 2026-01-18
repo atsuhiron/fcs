@@ -41,7 +41,7 @@ def plot_rotated_xz(trajectory_result: TrajectoryResult, ap: ApproximateParam) -
     plt.show()
 
 
-def plot_3d(trajectory_result: TrajectoryResult, aprox_res: ApproximateResult | None = None) -> None:
+def plot_3d(trajectory_result: TrajectoryResult, approx_res: ApproximateResult | None = None) -> None:
     px, py, pz = trajectory_result.projectile_traj
     tx, ty, tz = trajectory_result.target_traj
     approx_index = trajectory_result.approx_index
@@ -52,17 +52,27 @@ def plot_3d(trajectory_result: TrajectoryResult, aprox_res: ApproximateResult | 
     ax.plot(px, py, pz, label="projectile", color="blue", lw=2)
     ax.plot(tx, ty, tz, label="target", color="red")
 
-    if aprox_res:
+    if approx_res:
         ax.plot(
-            [aprox_res.proj_pos[0], aprox_res.target_pos[0]],
-            [aprox_res.proj_pos[1], aprox_res.target_pos[1]],
-            [aprox_res.proj_pos[2], aprox_res.target_pos[2]],
+            [approx_res.proj_pos[0], approx_res.target_pos[0]],
+            [approx_res.proj_pos[1], approx_res.target_pos[1]],
+            [approx_res.proj_pos[2], approx_res.target_pos[2]],
             label="approx",
             lw=3,
         )
+        t_min = approx_res.t
+        distance = approx_res.distance
     else:
-        ax.scatter(px[approx_index], py[approx_index], pz[approx_index], label="approx", s=50)
+        apx_vec = np.array([
+            [px[approx_index], tx[approx_index]],
+            [py[approx_index], ty[approx_index]],
+            [pz[approx_index], tz[approx_index]],
+        ])
+        ax.plot(apx_vec[0], apx_vec[1], apx_vec[2], label="approx", lw=3)
+        t_min = float(trajectory_result.t[approx_index])
+        distance = np.linalg.norm(apx_vec[:, 0] - apx_vec[:, 1])
 
+    ax.set_title(f"t_apx = {t_min:.2f} s, dist = {distance:.2f}")
     ax.set_xlabel("X axis")
     ax.set_ylabel("Y axis")
     ax.set_zlabel("Z axis")
