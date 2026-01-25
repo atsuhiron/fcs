@@ -12,7 +12,7 @@ from fcs.type import AtmosphereModel, InitCond, OptimizeResult, RuntimeConst, Ve
 
 def _create_step(
     runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3
-) -> Callable[[tuple[float, float]], float]:
+) -> tuple[Callable[[tuple[float, float]], float], Callable[[tuple[float, float]], float]]:
     am = AtmosphereModel()
 
     def step(phi_theta: tuple[float, float]) -> float:
@@ -23,7 +23,15 @@ def _create_step(
         approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
         return approx_result.distance
 
-    return step
+    def calc_eta(phi_theta: tuple[float, float]) -> float:
+        phi, theta = phi_theta
+        ic = InitCond(theta=theta, phi=phi, t_pos=t_pos, t_dir=t_dir)
+        res = solve(ic, runtime_const, am, FallEvent(ic))
+        aprox_param = calc_quadratic_param(res)
+        approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
+        return approx_result.t
+
+    return step, calc_eta
 
 
 def _initial_phi_theta(t_pos: Vector3) -> tuple[float, float]:
@@ -34,10 +42,10 @@ def _initial_phi_theta(t_pos: Vector3) -> tuple[float, float]:
     return phi, theta
 
 
-def run(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> OptimizeResult:
+def run_optimization(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> OptimizeResult:
     start = time.perf_counter()
 
-    step = _create_step(runtime_const, t_pos, t_dir)
+    step, calc_eta = _create_step(runtime_const, t_pos, t_dir)
     initial_phi, initial_theta = _initial_phi_theta(t_pos)
 
     result = minimize(
@@ -49,5 +57,6 @@ def run(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> Optimize
     )
 
     optimized_phi, optimized_theta = result.x
+    eta = calc_eta((optimized_phi, optimized_theta))
     end = time.perf_counter()
-    return OptimizeResult(optimized_phi, optimized_theta, float(result.fun), (end - start) * 1000)
+    return OptimizeResult(optimized_phi, optimized_theta, float(result.fun), eta * 1000, (end - start) * 1000)

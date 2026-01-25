@@ -70,12 +70,20 @@ class OptimizeResult(NamedTuple):
     phi: float
     theta: float
     distance: float
-    msec: float
+    eta_msec: float
+    calc_msec: float
 
-    def __str__(self) -> str:
+    def format_cl(self) -> str:
+        return (
+            f"{np.rad2deg(self.phi):.2f} {np.rad2deg(self.theta):.2f} "
+            f"{self.distance:.2f} {self.eta_msec:.2f} {self.calc_msec:.2f}"
+        )
+
+    def format_h(self) -> str:
         return (
             f"phi: {np.rad2deg(self.phi):.2f}°, "
             f"theta: {np.rad2deg(self.theta):.2f}°, "
-            f"dist: {self.distance: .2f}, "
-            f"time: {self.msec:.2f} ms"
+            f"dist: {self.distance:.2f}, "
+            f"eta_time: {self.eta_msec:.2f} ms, "
+            f"calc_time: {self.calc_msec:.2f} ms"
         )

@@ -17,6 +17,9 @@ dependencies = [
 requires = ["uv_build>=0.9.21,<0.10.0"]
 build-backend = "uv_build"
 
+[project.scripts]
+lead = "fcs.main:calc_lead"
+
 [dependency-groups]
 dev = [
     "ruff>=0.14.13",

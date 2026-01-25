@@ -33,6 +33,31 @@ Two angles, $(\phi, \theta)$ representing the aiming direction are output.
 - Azimuth $(\phi: -\pi \leq \phi \leq \pi)$
 - Elevation $(\theta: -\pi/2 \leq \theta \leq \pi/2)$
 - Distance
+- ETA time (msec)
+- Calculation time (msec)
+
+## Usage
+If you can use `uv`, you can run following command:
+```shell
+$ lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
+46.95 40.98 0.00 642.33 43.00
+``` 
+or not:
+```shell
+$ python .\src\fcs\main.py 0.1 0.001 0.1 300 100 100 100 -10 1 0
+46.95 40.98 0.00 642.33 43.00
+``` 
+Adding the `-r` (`--readable`) option will output the results in a more human-readable format.
+```shell
+$ lead -r 0.1 0.001 0.1 300 100 100 100 -10 1 0
+phi: 46.95°, theta: 40.98°, dist: 0.00, eta_time: 642.33 ms, calc_time: 35.51 ms
+``` 
+Adding the `--plot` option will show trajectory of projectile and target.
+```shell
+$ lead --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0
+46.95 40.98 0.00 642.33 43.00
+``` 
+![calculated_trajectory](images/trajectory_3d.png)
 
 ## Procedure
 Follow these steps to aim.

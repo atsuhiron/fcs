@@ -63,11 +63,13 @@ def plot_3d(trajectory_result: TrajectoryResult, approx_res: ApproximateResult |
         t_min = approx_res.t
         distance = approx_res.distance
     else:
-        apx_vec = np.array([
-            [px[approx_index], tx[approx_index]],
-            [py[approx_index], ty[approx_index]],
-            [pz[approx_index], tz[approx_index]],
-        ])
+        apx_vec = np.array(
+            [
+                [px[approx_index], tx[approx_index]],
+                [py[approx_index], ty[approx_index]],
+                [pz[approx_index], tz[approx_index]],
+            ]
+        )
         ax.plot(apx_vec[0], apx_vec[1], apx_vec[2], label="approx", lw=3)
         t_min = float(trajectory_result.t[approx_index])
         distance = np.linalg.norm(apx_vec[:, 0] - apx_vec[:, 1])
