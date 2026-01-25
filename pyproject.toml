@@ -9,8 +9,8 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "matplotlib>=3.10.8",
-    "numpy>=2.4.0",
-    "scipy>=1.16.3",
+    "numpy>=2.4.1",
+    "scipy>=1.17.0",
 ]
 
 [build-system]
@@ -22,6 +22,6 @@ lead = "fcs.main:calc_lead"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.13",
-    "ty>=0.0.12",
+    "ruff>=0.14.14",
+    "ty>=0.0.13",
 ]
