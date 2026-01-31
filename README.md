@@ -36,10 +36,16 @@ Two angles, $(\phi, \theta)$ representing the aiming direction are output.
 - ETA time (msec)
 - Calculation time (msec)
 
+## Installation
+If you can use `uv`, you can install by following command:
+```shell
+$ uv sync
+```
+
 ## Usage
 If you can use `uv`, you can run following command:
 ```shell
-$ lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
+$ uv run lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
 46.95 40.98 0.00 642.33 43.00
 ``` 
 or not:

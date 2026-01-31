@@ -23,5 +23,8 @@ lead = "fcs.main:calc_lead"
 [dependency-groups]
 dev = [
     "ruff>=0.14.14",
-    "ty>=0.0.13",
+    "ty>=0.0.14",
 ]
+
+[tool.uv]
+default-groups = []
