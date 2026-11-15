@@ -1,6 +1,6 @@
 import numpy as np
 
-from fcs.algorithm.quartic_minimum import find_minimum_qurtic
+from fcs.algorithm.quartic_minimum import find_minimum_quartic
 from fcs.type import ApproximateParam, ApproximateResult, QuadraticParam, TrajectoryResult, Vector3
 
 type N = float | np.ndarray
@@ -29,13 +29,13 @@ def slice_adjacent(array: np.ndarray, target_index: int, width: int = 2) -> np.n
     --------
     >>> import numpy as np
     >>> ar = np.arange(10)
-    >>> _slice_adjacent(ar, 0)
+    >>> slice_adjacent(ar, 0)
     array([0, 1, 2])
-    >>> _slice_adjacent(ar, 1)
+    >>> slice_adjacent(ar, 1)
     array([0, 1, 2, 3])
-    >>> _slice_adjacent(ar, 2)
+    >>> slice_adjacent(ar, 2)
     array([0, 1, 2, 3, 4])
-    >>> _slice_adjacent(ar, 3)
+    >>> slice_adjacent(ar, 3)
     array([1, 2, 3, 4, 5])
     """
     start_index = max(0, target_index - width)
@@ -78,9 +78,14 @@ def calc_quadratic_param(traj_result: TrajectoryResult) -> ApproximateParam:
     z = slice_adjacent(traj_result.projectile_traj[2], traj_result.approx_index)
     t = slice_adjacent(traj_result.t, traj_result.approx_index)
 
-    phi_arr = np.arctan2(y, x)
-    phi = float(np.mean(phi_arr))
-    phi_std = float(np.std(phi_arr))
+    # 位置ベクトルの和の向きを近似平面の方位角とする。
+    # 各点の方位角を平均すると、発射点 (原点、方位角が定まらない) や ±π の折り返しで値がずれる
+    phi = float(np.arctan2(np.sum(y), np.sum(x)))
+
+    # ばらつきは、原点以外の点の方位角と phi との差 (-π〜π に畳み込む) から求める
+    off_origin = (x != 0) | (y != 0)
+    phi_diff = np.angle(np.exp(1j * (np.arctan2(y[off_origin], x[off_origin]) - phi)))
+    phi_std = float(np.sqrt(np.mean(phi_diff**2))) if phi_diff.size else 0.0
 
     x_rotated, _ = rotate_xy(x, y, -phi)
     poly_param_x = np.polyfit(t, x_rotated, deg=2)
@@ -154,7 +159,11 @@ def find_approximation(
     a1 = 2 * (m12 * m13 + m22 * m23 + m32 * m33)
     a0 = m13**2 + m23**2 + m33**2
 
-    t_min, distance_min = find_minimum_qurtic(a4, a3, a2, a1, a0)
+    # 四次関数は距離の2乗を表す。近似の誤差で最小値が僅かに負になり得るので 0 で打ち切る。
+    # 二次近似が有効なのは近似に使った時間範囲の中だけなので、最小点もその範囲に限定する
+    # (範囲外は着弾後や計算打ち切り後の、実在しない弾道への外挿になる)
+    t_min, sq_distance_min = find_minimum_quartic(a4, a3, a2, a1, a0, bounds=approx_param.x_param.domain)
+    distance_min = float(np.sqrt(max(sq_distance_min, 0.0)))
     target_pos = (
         t_pos[0] + t_min * t_dir[0],
         t_pos[1] + t_min * t_dir[1],
@@ -172,3 +181,28 @@ def find_approximation(
         target_pos=target_pos,
         proj_pos=(proj_pos[0], proj_pos[1], reconstruct_quadratic(approx_param.z_param, t_min)),
     )
+
+
+MIN_SAMPLES_FOR_FIT = 3
+
+
+def find_closest_point(traj_result: TrajectoryResult, t_pos: Vector3, t_dir: Vector3) -> ApproximateResult:
+    """
+    Find the closest point between the projectile and the target.
+
+    Uses the quadratic approximation near the closest sample.
+    If the trajectory has too few samples to fit a quadratic function
+    (e.g. the projectile lands immediately after launch), the closest sample itself is returned.
+    """
+    if len(traj_result.t) < MIN_SAMPLES_FOR_FIT:
+        index = traj_result.approx_index
+        px, py, pz = (float(v) for v in traj_result.projectile_traj[:, index])
+        tx, ty, tz = (float(v) for v in traj_result.target_traj[:, index])
+        return ApproximateResult(
+            t=float(traj_result.t[index]),
+            distance=float(np.sqrt((px - tx) ** 2 + (py - ty) ** 2 + (pz - tz) ** 2)),
+            target_pos=(tx, ty, tz),
+            proj_pos=(px, py, pz),
+        )
+
+    return find_approximation(calc_quadratic_param(traj_result), t_pos, t_dir)

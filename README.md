@@ -8,7 +8,7 @@ The specifications for the projectile are as follows:
 - Mass ($m$)
 - Forward-projecting area ($A$)
 - Drag coefficient ($C_D$)
-- Type of drag ($I = 0\ {\rm or}\ 1$)
+- Type of drag ($I$): $I = 1$ for pressure drag, proportional to the square of the velocity (`--drag-type pressure`, default), or $I = 0$ for friction drag, proportional to the velocity (`--drag-type friction`)
 
 The target specifications are as follows:
 - position ($\vec{r_0}$)
@@ -17,8 +17,8 @@ The target specifications are as follows:
 Additionally, the parameters related to air resistance are as follows:
 - Standard density ($D_0 = 1.225\ {\rm kg/m^3}$)
 - Standard temperature ($T_0 = 288.15\ {\rm K}$)
-- Lapse rate ($L = 0.0065$)
-- Scale height ($h_0 = 5.256$)
+- Lapse rate ($L = 0.0065\ {\rm K/m}$)
+- Exponent ($h_0 = 5.256$)
 
 Air density is expressed according to the International Standard Atmosphere (ISA) model 
 using the following equation:
@@ -31,7 +31,7 @@ When initial velocity and mass are kept constant, the trajectory changes as show
 ## Output Data
 Two angles, $(\phi, \theta)$ representing the aiming direction are output.
 - Azimuth $(\phi: -\pi \leq \phi \leq \pi)$
-- Elevation $(\theta: -\pi/2 \leq \theta \leq \pi/2)$
+- Elevation $(\theta: 0 \leq \theta \leq \pi/2)$
 - Distance
 - ETA time (msec)
 - Calculation time (msec)
@@ -46,24 +46,53 @@ $ uv sync
 If you can use `uv`, you can run following command:
 ```shell
 $ uv run lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 or not:
 ```shell
 $ python .\src\fcs\main.py 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 Adding the `-r` (`--readable`) option will output the results in a more human-readable format.
 ```shell
 $ lead -r 0.1 0.001 0.1 300 100 100 100 -10 1 0
-phi: 46.95°, theta: 40.98°, dist: 0.00, eta_time: 642.33 ms, calc_time: 35.51 ms
+phi: 46.95°, theta: 36.46°, dist: 0.00, eta_time: 601.31 ms, calc_time: 35.51 ms
 ``` 
 Adding the `--plot` option will show trajectory of projectile and target.
 ```shell
 $ lead --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 ![calculated_trajectory](images/trajectory_3d.png)
+
+### Exit status
+The result counts as a hit when the closest distance between the projectile and the target is within `--tolerance` (default: 0.1 m).
+The exit status tells whether the projectile hits the target, and why not if it does not.
+
+| Exit status | Name | Meaning |
+|---|---|---|
+| 0 | `hit` | The projectile hits the target. |
+| 1 | | Unexpected error. |
+| 2 | | Invalid arguments. The arguments are checked before the calculation starts (see below). |
+| 3 | `out_of_range` | The projectile lands without reaching the target. |
+| 4 | `out_of_time` | The projectile is still in flight at `--span-end` (default: 10 s) and has not reached the target. A larger `--span-end` may give a hit. |
+
+For 3 and 4, the result for the closest approach is still printed to stdout, and `lead: <name>: <message>` is written to stderr.
+```shell
+$ lead 0.1 0.001 0.1 300 4000 0 500 0 50 0
+7.13 14.48 2403.53 10000.00 47.92
+lead: out_of_time: the projectile does not reach the target within --span-end
+```
+The following arguments are rejected with exit status 2, and nothing is printed to stdout:
+- Any value that is not a finite number (`nan`, `inf`)
+- `mass`, `area`, `initial_velocity`, `--span-end` or `--std-temp` that is 0 or less
+- `drag_coefficient`, `target_z`, `--tolerance`, `--std-density` or `--lapse-rate` that is negative
+- A target at the launch point `(0, 0, 0)`
+```shell
+$ lead 0.1 0.001 0.1 300 100 100 -5 0 0 0
+usage: lead [-h] ...
+lead: error: target_z must be 0 or greater: -5.0
+```
 
 ## Procedure
 Follow these steps to aim.
@@ -88,7 +117,7 @@ Solving the following equation will reveal the $t_{\rm apx}$ when the projectile
 \vec{r_0} + t\vec{d} = t\vec{V_0} - \vec{F}
 \end{align}
 ```
-where $\vec{F}$ represents the vector of the total force acting on the projectile. The right side represents the target's predicted trajectory, while the left side represents the projectile's trajectory. If forces other than gravity are ignored, or if air resistance (frictional resistance) is proportional to velocity, this equation can be solved analytically. However, in reality, due to various effects, $\vec{F}$ takes on a complex form and cannot be solved analytically.  
+where $\vec{F}$ represents the vector of the total force acting on the projectile. The left side represents the target's predicted trajectory, while the right side represents the projectile's trajectory. If forces other than gravity are ignored, or if air resistance (frictional resistance) is proportional to velocity, this equation can be solved analytically. However, in reality, due to various effects, $\vec{F}$ takes on a complex form and cannot be solved analytically.  
 Therefore, numerically solve the following system of first-order ordinary differential equations:
 ```math
 \begin{align}
@@ -105,27 +134,27 @@ v_z
 v_x \\
 v_y \\
 v_z \\
--Cv_x \\
--Cv_y \\
--Cv_z - g/m
+-C(v_x + d_x) \\
+-C(v_y + d_y) \\
+-C(v_z + d_z) - g
 \end{pmatrix}
 \end{align}
 ```
-where $C$ is the air resistance coefficient and follows the following equation.
+Here $\vec{S}$ is the state of the projectile relative to the target. Air resistance, however, depends on the motion relative to the air, so it is evaluated with the absolute velocity $\vec{v} + \vec{d}$ and the absolute altitude $z + r_{0z} + d_z t$ of the projectile. $C$ is the air resistance coefficient and follows the following equation.
 ```math
-C = \frac{AC_DD(z)|\vec{v}|^{I}}{2m}
+C = \frac{AC_DD(z + r_{0z} + d_z t)|\vec{v} + \vec{d}|^{I}}{2m}
 ```
 Use the following values as the initial conditions for the differential equation:
 ```math
 \begin{align}
 \vec{S}_0 = 
 \begin{pmatrix}
--r_x \\
--r_y \\
--r_z \\
+-r_{0x} \\
+-r_{0y} \\
+-r_{0z} \\
 -d_x + V_0\cos{\theta_0}\cos{\phi_0} \\
 -d_y + V_0\cos{\theta_0}\sin{\phi_0} \\
--d_z + V_0\cos{\theta_0}
+-d_z + V_0\sin{\theta_0}
 \end{pmatrix}
 \end{align}
 ```
@@ -157,11 +186,12 @@ z
 \end{pmatrix}
 \end{align}
 ```
-where $R_z(\tilde{\phi})$ is the rotation matrix about the $z$-axis, and $\tilde{\phi}$ is expressed using $\tilde{\vec{r}}_n$, the result of numerical computation, in the following equation.
+where $R_z(\tilde{\phi})$ is the rotation matrix about the $z$-axis, and $\tilde{\phi}$ is expressed using $\vec{B}_n$, the result of numerical computation, in the following equation.
 ```math
-\tilde{\phi} = \frac{1}{N} \sum_{i=0}^{N} \arctan \left( \frac{B'_y(\tilde{t}_n)}{B'_x(\tilde{t}_n)} \right)
+\tilde{\phi} = \arctan \left( \frac{\sum_{i} B_y(\tilde{t}_i)}{\sum_{i} B_x(\tilde{t}_i)} \right)
 ```
-In this $xyz$ coordinate system, we approximate the trajectory near $\tilde{t}_n$ as follows:
+The sum is taken over the points used for the approximation. This is the direction of the sum of their position vectors, so the launch point (the origin, whose azimuth is undefined) has no effect, and the result is not affected by the wrap-around of the angle at $\pm\pi$.
+In this $x'y'z'$ coordinate system, we approximate the trajectory near $\tilde{t}_n$ as follows:
 ```math
 \begin{align}
 \vec{B'}(t) =
@@ -205,21 +235,21 @@ d_z
 t + 
 \begin{pmatrix}
 r_{0x} \\
-r_{0x} \\
-r_{0x}
+r_{0y} \\
+r_{0z}
 \end{pmatrix}
 \right]\right| \\
 
 &= \min_t \left|
 \begin{array}{rrr}
-a_x t^2 & +\left( b_x - d_x \cos \phi - d_y \sin \phi \right)t & +(c_x - r_{0x} \cos \phi - r_{0y} \sin \phi) \\
-& \left(d_x \sin \phi - d_y \cos \phi \right)t & +(r_{0x} \sin \phi - r_{0y} \cos \phi) \\
+a_x t^2 & +\left( b_x - d_x \cos \tilde{\phi} - d_y \sin \tilde{\phi} \right)t & +(c_x - r_{0x} \cos \tilde{\phi} - r_{0y} \sin \tilde{\phi}) \\
+& \left(d_x \sin \tilde{\phi} - d_y \cos \tilde{\phi} \right)t & +(r_{0x} \sin \tilde{\phi} - r_{0y} \cos \tilde{\phi}) \\
 a_z t^2 & + \left(b_z - d_z \right)t & + \left(c_z - r_{0z}\right)
 \end{array}
 \right|
 \end{align}
 ```
-Since $a_x^2 + a_z^2 > 0$, this is equivalent to finding the minimum value of a quartic function.
+Since $a_x^2 + a_z^2 > 0$, this is equivalent to finding the minimum value of a quartic function. The quadratic approximation is valid only near $\tilde{t}_n$, so the minimum is searched within the time range of the points used for the approximation. If the trajectory has fewer than three points (for example, the projectile lands immediately after launch), the approximation is skipped and $\tilde{\delta}$ is used as is.
 
 ### 4. Optimize the two angles
 In simple terms, what we are doing in steps 2 and 3 is determining the closest distance $\delta$ when a projectile is launched at two angles, $\phi$ and $\theta$. Therefore, Eq. (9) above can be rewritten by adding phi and theta as arguments as follows.
@@ -236,3 +266,4 @@ Ultimately, we seek the launch angles $\phi_{\rm apx}$ and $\theta_{\rm apx}$ th
 &= \min_{\phi, \theta} \min_t \left| \vec{B'}(t, \phi, \theta) - \vec{T'}(t)\right|
 \end{align}
 ```
+The search range of $\theta$ is $0 \leq \theta \leq \pi$, not $0 \leq \theta \leq \pi/2$. At the zenith ($\theta = \pi/2$), $\phi$ has no effect on the trajectory, so a search that reaches the zenith with $\phi$ pointing away from the target cannot leave it. Allowing $\theta$ to pass through the zenith removes this. Since the direction $(\phi, \theta)$ with $\theta > \pi/2$ is the same as $(\phi + \pi, \pi - \theta)$, the result is converted back to $0 \leq \theta \leq \pi/2$.

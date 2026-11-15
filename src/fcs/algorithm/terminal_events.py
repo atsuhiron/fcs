@@ -27,6 +27,9 @@ class FallEvent(TerminalEvent):
         self._init_cond = init_cond
 
     def __call__(self, t: float, state: State, *__: object) -> float:
+        if t <= 0:
+            # 発射点は z = 0 なので、発射の瞬間を着地とみなさないよう正の値を返す
+            return 1.0
         target = reconstruct_target_trajectory(self._init_cond, np.array([t]))
         return state[2] + target[2, 0]  # z が負になったら終了
 
