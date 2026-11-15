@@ -73,7 +73,7 @@ The exit status tells whether the projectile hits the target, and why not if it 
 |---|---|---|
 | 0 | `hit` | The projectile hits the target. |
 | 1 | | Unexpected error. |
-| 2 | | Invalid arguments. |
+| 2 | | Invalid arguments. The arguments are checked before the calculation starts (see below). |
 | 3 | `out_of_range` | The projectile lands without reaching the target. |
 | 4 | `out_of_time` | The projectile is still in flight at `--span-end` (default: 10 s) and has not reached the target. A larger `--span-end` may give a hit. |
 
@@ -82,6 +82,16 @@ For 3 and 4, the result for the closest approach is still printed to stdout, and
 $ lead 0.1 0.001 0.1 300 4000 0 500 0 50 0
 7.13 14.48 2403.53 10000.00 47.92
 lead: out_of_time: the projectile does not reach the target within --span-end
+```
+The following arguments are rejected with exit status 2, and nothing is printed to stdout:
+- Any value that is not a finite number (`nan`, `inf`)
+- `mass`, `area`, `initial_velocity`, `--span-end` or `--std-temp` that is 0 or less
+- `drag_coefficient`, `target_z`, `--tolerance`, `--std-density` or `--lapse-rate` that is negative
+- A target at the launch point `(0, 0, 0)`
+```shell
+$ lead 0.1 0.001 0.1 300 100 100 -5 0 0 0
+usage: lead [-h] ...
+lead: error: target_z must be 0 or greater: -5.0
 ```
 
 ## Procedure

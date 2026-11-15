@@ -1,4 +1,5 @@
 import argparse
+import math
 import sys
 
 from fcs.algorithm.approximate_decision import find_closest_point
@@ -19,6 +20,39 @@ STATUS_MESSAGES: dict[OptimizeStatus, str] = {
     "out_of_range": "the projectile cannot reach the target",
     "out_of_time": "the projectile does not reach the target within --span-end",
 }
+
+
+def _find_invalid_inputs(args: argparse.Namespace) -> list[str]:
+    """Return a message for each argument whose value makes the calculation meaningless."""
+    errors = [
+        f"{name} must be a finite number: {value}" for name, value in vars(args).items() if _is_non_finite(value)
+    ]
+    if errors:
+        return errors
+
+    # 各行は、引数名・値・満たすべき条件・条件の説明の順
+    rules: list[tuple[str, float, bool, str]] = [
+        ("mass", args.mass, args.mass > 0, "greater than 0"),
+        ("area", args.area, args.area > 0, "greater than 0"),
+        ("drag_coefficient", args.drag_coefficient, args.drag_coefficient >= 0, "0 or greater"),
+        ("initial_velocity", args.initial_velocity, args.initial_velocity > 0, "greater than 0"),
+        # 射手は地面 (z = 0) にいて、弾は z < 0 に入れない
+        ("target_z", args.target_z, args.target_z >= 0, "0 or greater"),
+        ("--span-end", args.span_end, args.span_end > 0, "greater than 0"),
+        ("--tolerance", args.tolerance, args.tolerance >= 0, "0 or greater"),
+        ("--std-density", args.std_density, args.std_density >= 0, "0 or greater"),
+        ("--std-temp", args.std_temp, args.std_temp > 0, "greater than 0"),
+        ("--lapse-rate", args.lapse_rate, args.lapse_rate >= 0, "0 or greater"),
+    ]
+    errors = [f"{name} must be {condition}: {value}" for name, value, ok, condition in rules if not ok]
+
+    if args.target_x == 0 and args.target_y == 0 and args.target_z == 0:
+        errors.append("the target must not be at the launch point (0, 0, 0)")
+    return errors
+
+
+def _is_non_finite(value: object) -> bool:
+    return isinstance(value, float) and not math.isfinite(value)
 
 
 def calc_lead() -> None:
@@ -63,6 +97,8 @@ def calc_lead() -> None:
     parser.add_argument("--readable", "-r", action="store_true", help="Output in a human-readable format")
 
     args = parser.parse_args()
+    if errors := _find_invalid_inputs(args):
+        parser.error("; ".join(errors))  # 終了コード 2 で終了する
 
     runtime_const = RuntimeConst(
         m=args.mass,
