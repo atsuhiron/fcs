@@ -1,6 +1,6 @@
 import argparse
 
-from fcs.algorithm.approximate_decision import calc_quadratic_param, find_approximation
+from fcs.algorithm.approximate_decision import find_closest_point
 from fcs.algorithm.optimizer import run_optimization
 from fcs.algorithm.solver import solve
 from fcs.algorithm.terminal_events import FallEvent
@@ -63,8 +63,7 @@ def calc_lead() -> None:
     if args.plot:
         ic = InitCond(theta=specifications.theta, phi=specifications.phi, t_pos=t_pos, t_dir=t_dir)
         res = solve(ic, runtime_const, am, FallEvent(ic))
-        aprox_param = calc_quadratic_param(res)
-        approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
+        approx_result = find_closest_point(res, ic.t_pos, ic.t_dir)
         plot_3d(res, approx_result)
 
 

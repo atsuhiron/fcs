@@ -219,7 +219,7 @@ a_z t^2 & + \left(b_z - d_z \right)t & + \left(c_z - r_{0z}\right)
 \right|
 \end{align}
 ```
-Since $a_x^2 + a_z^2 > 0$, this is equivalent to finding the minimum value of a quartic function.
+Since $a_x^2 + a_z^2 > 0$, this is equivalent to finding the minimum value of a quartic function. The quadratic approximation is valid only near $\tilde{t}_n$, so the minimum is searched within the time range of the points used for the approximation. If the trajectory has fewer than three points (for example, the projectile lands immediately after launch), the approximation is skipped and $\tilde{\delta}$ is used as is.
 
 ### 4. Optimize the two angles
 In simple terms, what we are doing in steps 2 and 3 is determining the closest distance $\delta$ when a projectile is launched at two angles, $\phi$ and $\theta$. Therefore, Eq. (9) above can be rewritten by adding phi and theta as arguments as follows.
