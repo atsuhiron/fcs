@@ -66,12 +66,20 @@ class ApproximateResult(NamedTuple):
     proj_pos: Vector3
 
 
+# "hit" は最接近距離が許容値以下の場合。
+# "out_of_time" は許容値を超えていて、弾が着地する前に計算が span_end で打ち切られた場合。
+# span_end を延ばせば届く可能性がある。
+# "out_of_range" は許容値を超えていて、弾が span_end より前に着地した場合。この弾では届かない。
+type OptimizeStatus = Literal["hit", "out_of_time", "out_of_range"]
+
+
 class OptimizeResult(NamedTuple):
     phi: float
     theta: float
     distance: float
     eta_msec: float
     calc_msec: float
+    status: OptimizeStatus
 
     def format_cl(self) -> str:
         return (

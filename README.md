@@ -65,6 +65,25 @@ $ lead --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0
 ``` 
 ![calculated_trajectory](images/trajectory_3d.png)
 
+### Exit status
+The result counts as a hit when the closest distance between the projectile and the target is within `--tolerance` (default: 0.1 m).
+The exit status tells whether the projectile hits the target, and why not if it does not.
+
+| Exit status | Name | Meaning |
+|---|---|---|
+| 0 | `hit` | The projectile hits the target. |
+| 1 | | Unexpected error. |
+| 2 | | Invalid arguments. |
+| 3 | `out_of_range` | The projectile lands without reaching the target. |
+| 4 | `out_of_time` | The projectile is still in flight at `--span-end` (default: 10 s) and has not reached the target. A larger `--span-end` may give a hit. |
+
+For 3 and 4, the result for the closest approach is still printed to stdout, and `lead: <name>: <message>` is written to stderr.
+```shell
+$ lead 0.1 0.001 0.1 300 4000 0 500 0 50 0
+7.13 14.48 2403.53 10000.00 47.92
+lead: out_of_time: the projectile does not reach the target within --span-end
+```
+
 ## Procedure
 Follow these steps to aim.
 1. Set initial angles ($\phi_0, \theta_0$)
