@@ -54,7 +54,6 @@ def run_optimization(
         x0=np.array([initial_phi, initial_theta]),
         bounds=[(None, None), (0, np.pi / 2)],  # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む
         method="L-BFGS-B",
-        options={"disp": False},
     )
 
     optimized_phi, optimized_theta = (float(x) for x in result.x)
