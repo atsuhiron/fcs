@@ -1,0 +1,55 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+`fcs` is a fire-control (lead) calculator: given projectile specs and a target's position and constant velocity, it finds the azimuth/elevation that makes the projectile's trajectory (with altitude-dependent air drag) pass closest to the target. `README.md` holds the full mathematical derivation and is the specification for the algorithm — keep it in sync when the maths changes.
+
+## Commands
+
+Python 3.13, managed with `uv`. The package uses a `src/` layout and must be installed (which `uv sync` / `uv run` do) for the `fcs.*` imports to resolve.
+
+```shell
+uv sync --group dev        # dev tools (ruff, ty) are NOT installed by a plain `uv sync` (default-groups = [])
+check.bat                  # ruff format + ruff check --fix + ty check (modifies files)
+uv run ruff format --check # non-modifying equivalents
+uv run ruff check
+uv run ty check
+```
+
+Running:
+
+```shell
+# positional args: mass area drag_coefficient initial_velocity target_x target_y target_z direction_x direction_y direction_z
+uv run lead 0.1 0.001 0.1 300 100 100 100 -10 1 0        # -> "phi_deg theta_deg distance eta_msec calc_msec"
+uv run lead -r --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0   # human-readable output + 3D matplotlib window
+uv run python -m fcs.scripts.show_trajectory_samples     # drag-model comparison plot (source of images/trajectory_sample.png)
+uv run python -m fcs.algorithm.quartic_minimum           # visual sanity check of the quartic minimiser
+```
+
+There is no test suite. The README example above (expected `46.95 36.46 0.00 601.31 <calc_time>`) is the only regression reference. `--plot` and the scripts open blocking matplotlib windows.
+
+## Architecture
+
+The computation is three nested layers, mirroring README "Procedure" steps 2–4. All data passed between them are `NamedTuple`s defined in `src/fcs/type.py`.
+
+1. **`algorithm/solver.py` — trajectory ODE.** `solve()` integrates the 6-state equation with `scipy.integrate.solve_ivp`. The state is in the **target-relative frame**: initial position is `-t_pos` and the target velocity is subtracted from the muzzle velocity, so the norm of the state position is directly the projectile–target distance. Drag is the exception: the state equation converts back to the projectile's absolute velocity and absolute altitude before computing it, because drag depends on motion through the air, not relative to the target. `solve()` then adds the reconstructed target path back (`util.reconstruct_target_trajectory`) so `TrajectoryResult.projectile_traj` / `target_traj` are in absolute coordinates, and records `approx_index`, the sample with the smallest distance. Integration stops via a `TerminalEvent` (`algorithm/terminal_events.py`); `FallEvent` fires when the projectile's absolute z crosses zero downward.
+2. **`algorithm/approximate_decision.py` — sub-sample closest approach.** The ODE output is discrete, so `calc_quadratic_param()` takes the ±2 samples around `approx_index`, rotates them about z by the mean azimuth into a plane, and fits x'(t) and z(t) with quadratics. `find_approximation()` expands |projectile − target|² into a quartic in t and minimises it analytically with `algorithm/quartic_minimum.py` (closed-form cubic roots of the derivative, in complex arithmetic). Note `ApproximateResult.distance` (and therefore `OptimizeResult.distance`) is the quartic's value, i.e. the **squared** distance predicted by the fitted model, not a re-measured distance.
+3. **`algorithm/optimizer.py` — aim search.** `run_optimization()` runs `scipy.optimize.minimize` (L-BFGS-B) over `(phi, theta)`, where each objective evaluation runs layers 1 and 2 in full. The initial guess points straight at the target's current position.
+
+`main.py` (`calc_lead`, exposed as the `lead` console script) parses arguments, calls `run_optimization`, and for `--plot` re-solves once at the optimum to feed `plot_functions.plot_3d`.
+
+### Things that are easy to get wrong
+
+- Angle order differs between APIs: the optimizer vector and `OptimizeResult` are `(phi, theta)`; `InitCond` is `(theta, phi, ...)`. Use keyword arguments.
+- `drag_type="pressure"` means drag ∝ |v|² (velocity exponent 1 in the coefficient); `"friction"` means drag ∝ |v| (exponent 0).
+- The CLI atmosphere flags (`--std-density`, `--std-temp`, `--lapse-rate`, `--lapse-index`) only affect the `--plot` re-solve. `run_optimization` always uses the default `AtmosphereModel()`.
+- The optimizer bounds elevation to `[0, π/2]`, although the README documents `[-π/2, π/2]`.
+- `find_minimum_qurtic` is the (misspelled) public name; it raises `ValueError` if the leading coefficient is not positive.
+
+## Conventions
+
+- Ruff runs with `select = ["ALL"]` (only `D` and `COM812` ignored), line length 119. New code needs full type annotations, and deliberate violations get a targeted `# noqa: <code>` (e.g. `T201` for the CLI's `print`).
+- Code uses Python 3.12+ syntax: `type` aliases and PEP 695 generics (`def f[T: N](...)`).
+- Some inline comments are in Japanese; leave them as they are.
