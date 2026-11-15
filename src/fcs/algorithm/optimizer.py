@@ -71,7 +71,10 @@ def run_optimization(
     result = minimize(
         lambda phi_theta: evaluate(phi_theta)[0].distance ** 2,  # 距離の2乗は最小点の近くでも滑らか
         x0=np.array([initial_phi, initial_theta]),
-        bounds=[(None, None), (0, np.pi / 2)],  # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む
+        # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む。
+        # theta は天頂 (pi/2) を越えて反対側まで動けるようにする。天頂では phi を変えても弾道が変わらないため、
+        # 上限を pi/2 にすると、phi が逆向きのまま天頂に達したときにそこから動けなくなる
+        bounds=[(None, None), (0, np.pi)],
         method="L-BFGS-B",
         # 命中する場合は 200 回未満で収束する。届かない目標で探索が長引くのを防ぐ
         options={"maxfun": MAX_EVALUATIONS},
@@ -80,6 +83,10 @@ def run_optimization(
     # result.success は命中かどうかと対応しない (命中後に直線探索が異常終了する、
     # 届かないまま「収束」する、のどちらもある) ので、最接近距離そのもので判定する
     optimized_phi, optimized_theta = (float(x) for x in result.x)
+    if optimized_theta > np.pi / 2:
+        # 天頂を越えた向きは、方位角を反転して仰角を折り返した向きと同じ
+        optimized_phi += np.pi
+        optimized_theta = np.pi - optimized_theta
     approx_result, cut_off = evaluate((optimized_phi, optimized_theta))
     status: OptimizeStatus
     if approx_result.distance <= tolerance:

@@ -266,3 +266,4 @@ Ultimately, we seek the launch angles $\phi_{\rm apx}$ and $\theta_{\rm apx}$ th
 &= \min_{\phi, \theta} \min_t \left| \vec{B'}(t, \phi, \theta) - \vec{T'}(t)\right|
 \end{align}
 ```
+The search range of $\theta$ is $0 \leq \theta \leq \pi$, not $0 \leq \theta \leq \pi/2$. At the zenith ($\theta = \pi/2$), $\phi$ has no effect on the trajectory, so a search that reaches the zenith with $\phi$ pointing away from the target cannot leave it. Allowing $\theta$ to pass through the zenith removes this. Since the direction $(\phi, \theta)$ with $\theta > \pi/2$ is the same as $(\phi + \pi, \pi - \theta)$, the result is converted back to $0 \leq \theta \leq \pi/2$.
