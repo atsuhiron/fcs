@@ -7,31 +7,25 @@ from scipy.optimize import minimize
 from fcs.algorithm.approximate_decision import calc_quadratic_param, find_approximation
 from fcs.algorithm.solver import solve
 from fcs.algorithm.terminal_events import FallEvent
-from fcs.type import AtmosphereModel, InitCond, OptimizeResult, RuntimeConst, Vector3
+from fcs.type import ApproximateResult, AtmosphereModel, InitCond, OptimizeResult, RuntimeConst, Vector3
 
 
-def _create_step(
-    runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3
-) -> tuple[Callable[[tuple[float, float]], float], Callable[[tuple[float, float]], float]]:
-    am = AtmosphereModel()
-
-    def step(phi_theta: tuple[float, float]) -> float:
+def _create_evaluator(
+    runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3, atoms_model: AtmosphereModel
+) -> Callable[[tuple[float, float]], ApproximateResult]:
+    def evaluate(phi_theta: tuple[float, float]) -> ApproximateResult:
         phi, theta = phi_theta
         ic = InitCond(theta=theta, phi=phi, t_pos=t_pos, t_dir=t_dir)
-        res = solve(ic, runtime_const, am, FallEvent(ic))
+        res = solve(ic, runtime_const, atoms_model, FallEvent(ic))
         aprox_param = calc_quadratic_param(res)
-        approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
-        return approx_result.distance
+        return find_approximation(aprox_param, ic.t_pos, ic.t_dir)
 
-    def calc_eta(phi_theta: tuple[float, float]) -> float:
-        phi, theta = phi_theta
-        ic = InitCond(theta=theta, phi=phi, t_pos=t_pos, t_dir=t_dir)
-        res = solve(ic, runtime_const, am, FallEvent(ic))
-        aprox_param = calc_quadratic_param(res)
-        approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)
-        return approx_result.t
+    return evaluate
 
-    return step, calc_eta
+
+def _wrap_angle(phi: float) -> float:
+    """Wrap an angle into (-pi, pi]."""
+    return float(np.pi - (np.pi - phi) % (2 * np.pi))
 
 
 def _initial_phi_theta(t_pos: Vector3) -> tuple[float, float]:
@@ -42,21 +36,34 @@ def _initial_phi_theta(t_pos: Vector3) -> tuple[float, float]:
     return phi, theta
 
 
-def run_optimization(runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3) -> OptimizeResult:
+def run_optimization(
+    runtime_const: RuntimeConst,
+    t_pos: Vector3,
+    t_dir: Vector3,
+    atoms_model: AtmosphereModel | None = None,
+) -> OptimizeResult:
     start = time.perf_counter()
 
-    step, calc_eta = _create_step(runtime_const, t_pos, t_dir)
+    if atoms_model is None:
+        atoms_model = AtmosphereModel()
+    evaluate = _create_evaluator(runtime_const, t_pos, t_dir, atoms_model)
     initial_phi, initial_theta = _initial_phi_theta(t_pos)
 
     result = minimize(
-        step,
+        lambda phi_theta: evaluate(phi_theta).distance ** 2,  # 距離の2乗は最小点の近くでも滑らか
         x0=np.array([initial_phi, initial_theta]),
-        bounds=[(-np.pi, np.pi), (0, np.pi / 2)],
+        bounds=[(None, None), (0, np.pi / 2)],  # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む
         method="L-BFGS-B",
         options={"disp": False},
     )
 
-    optimized_phi, optimized_theta = result.x
-    eta = calc_eta((optimized_phi, optimized_theta))
+    optimized_phi, optimized_theta = (float(x) for x in result.x)
+    approx_result = evaluate((optimized_phi, optimized_theta))
     end = time.perf_counter()
-    return OptimizeResult(optimized_phi, optimized_theta, float(result.fun), eta * 1000, (end - start) * 1000)
+    return OptimizeResult(
+        phi=_wrap_angle(optimized_phi),
+        theta=optimized_theta,
+        distance=approx_result.distance,
+        eta_msec=approx_result.t * 1000,
+        calc_msec=(end - start) * 1000,
+    )

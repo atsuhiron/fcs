@@ -20,8 +20,7 @@ def calc_lead() -> None:
     parser.add_argument("direction_x", type=float, help="Target direction X component")
     parser.add_argument("direction_y", type=float, help="Target direction Y component")
     parser.add_argument("direction_z", type=float, help="Target direction Z component")
-    parser.add_argument("--span-start", type=float, default=0, help="Start of the time span (s)")
-    parser.add_argument("--span-end", type=float, default=10, help="End of the time span (s)")
+    parser.add_argument("--span-end", type=float, default=10, help="Maximum flight time to simulate (s)")
     parser.add_argument("--std-density", type=float, default=1.225, help="Standard atmospheric density (kg/m^3)")
     parser.add_argument("--std-temp", type=float, default=288.15, help="Standard atmospheric temperature (K)")
     parser.add_argument("--lapse-rate", type=float, default=0.0065, help="Atmospheric lapse rate (K/m)")
@@ -43,13 +42,19 @@ def calc_lead() -> None:
         area=args.area,
         cd=args.drag_coefficient,
         v0=args.initial_velocity,
-        span=(args.span_start, args.span_end),
+        span_end=args.span_end,
         drag_type=args.drag_type,
+    )
+    am = AtmosphereModel(
+        std_density=args.std_density,
+        std_temp=args.std_temp,
+        lapse_rate=args.lapse_rate,
+        index_=args.lapse_index,
     )
     t_pos = (args.target_x, args.target_y, args.target_z)
     t_dir = (args.direction_x, args.direction_y, args.direction_z)
 
-    specifications = run_optimization(runtime_const, t_pos, t_dir)
+    specifications = run_optimization(runtime_const, t_pos, t_dir, am)
     if args.readable:
         print(specifications.format_h())  # noqa: T201
     else:
@@ -57,12 +62,6 @@ def calc_lead() -> None:
 
     if args.plot:
         ic = InitCond(theta=specifications.theta, phi=specifications.phi, t_pos=t_pos, t_dir=t_dir)
-        am = AtmosphereModel(
-            std_density=args.std_density,
-            std_temp=args.std_temp,
-            lapse_rate=args.lapse_rate,
-            index_=args.lapse_index,
-        )
         res = solve(ic, runtime_const, am, FallEvent(ic))
         aprox_param = calc_quadratic_param(res)
         approx_result = find_approximation(aprox_param, ic.t_pos, ic.t_dir)

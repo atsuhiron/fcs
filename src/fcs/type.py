@@ -30,7 +30,7 @@ class RuntimeConst(NamedTuple):
     area: float
     cd: float
     v0: float
-    span: tuple[float, float]
+    span_end: float  # 発射 (t = 0) から計算を打ち切るまでの時間 (s)
     drag_type: Literal["pressure", "friction"] = "pressure"
 
 

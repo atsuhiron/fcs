@@ -154,7 +154,9 @@ def find_approximation(
     a1 = 2 * (m12 * m13 + m22 * m23 + m32 * m33)
     a0 = m13**2 + m23**2 + m33**2
 
-    t_min, distance_min = find_minimum_qurtic(a4, a3, a2, a1, a0)
+    # 四次関数は距離の2乗を表す。近似の誤差で最小値が僅かに負になり得るので 0 で打ち切る
+    t_min, sq_distance_min = find_minimum_qurtic(a4, a3, a2, a1, a0)
+    distance_min = float(np.sqrt(max(sq_distance_min, 0.0)))
     target_pos = (
         t_pos[0] + t_min * t_dir[0],
         t_pos[1] + t_min * t_dir[1],

@@ -69,7 +69,7 @@ def solve(
     init_state = create_init_state(init_cond, runtime_const)
     sol = solve_ivp(
         create_state_eq(runtime_const, atoms_model, init_cond),
-        runtime_const.span,
+        (0, runtime_const.span_end),
         init_state,
         t_eval=t_eval,
         events=event,
