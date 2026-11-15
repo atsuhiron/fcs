@@ -21,14 +21,14 @@ MAX_EVALUATIONS = 300
 
 
 def _create_evaluator(
-    runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3, atoms_model: AtmosphereModel
+    runtime_const: RuntimeConst, t_pos: Vector3, t_dir: Vector3, atmosphere_model: AtmosphereModel
 ) -> Callable[[tuple[float, float]], tuple[ApproximateResult, bool]]:
     """Create a function that returns the closest point and whether the trajectory was cut off at span_end."""
 
     def evaluate(phi_theta: tuple[float, float]) -> tuple[ApproximateResult, bool]:
         phi, theta = phi_theta
         ic = InitCond(theta=theta, phi=phi, t_pos=t_pos, t_dir=t_dir)
-        res = solve(ic, runtime_const, atoms_model, FallEvent(ic))
+        res = solve(ic, runtime_const, atmosphere_model, FallEvent(ic))
         # 着地せずに終わった弾道は、最後の時刻がちょうど span_end になる
         cut_off = bool(res.t[-1] >= runtime_const.span_end)
         return find_closest_point(res, ic.t_pos, ic.t_dir), cut_off
@@ -53,7 +53,7 @@ def run_optimization(
     runtime_const: RuntimeConst,
     t_pos: Vector3,
     t_dir: Vector3,
-    atoms_model: AtmosphereModel | None = None,
+    atmosphere_model: AtmosphereModel | None = None,
     tolerance: float = 0.1,
 ) -> OptimizeResult:
     """
@@ -63,9 +63,9 @@ def run_optimization(
     """
     start = time.perf_counter()
 
-    if atoms_model is None:
-        atoms_model = AtmosphereModel()
-    evaluate = _create_evaluator(runtime_const, t_pos, t_dir, atoms_model)
+    if atmosphere_model is None:
+        atmosphere_model = AtmosphereModel()
+    evaluate = _create_evaluator(runtime_const, t_pos, t_dir, atmosphere_model)
     initial_phi, initial_theta = _initial_phi_theta(t_pos)
 
     result = minimize(

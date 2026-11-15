@@ -1,6 +1,6 @@
 import numpy as np
 
-from fcs.algorithm.quartic_minimum import find_minimum_qurtic
+from fcs.algorithm.quartic_minimum import find_minimum_quartic
 from fcs.type import ApproximateParam, ApproximateResult, QuadraticParam, TrajectoryResult, Vector3
 
 type N = float | np.ndarray
@@ -29,13 +29,13 @@ def slice_adjacent(array: np.ndarray, target_index: int, width: int = 2) -> np.n
     --------
     >>> import numpy as np
     >>> ar = np.arange(10)
-    >>> _slice_adjacent(ar, 0)
+    >>> slice_adjacent(ar, 0)
     array([0, 1, 2])
-    >>> _slice_adjacent(ar, 1)
+    >>> slice_adjacent(ar, 1)
     array([0, 1, 2, 3])
-    >>> _slice_adjacent(ar, 2)
+    >>> slice_adjacent(ar, 2)
     array([0, 1, 2, 3, 4])
-    >>> _slice_adjacent(ar, 3)
+    >>> slice_adjacent(ar, 3)
     array([1, 2, 3, 4, 5])
     """
     start_index = max(0, target_index - width)
@@ -162,7 +162,7 @@ def find_approximation(
     # 四次関数は距離の2乗を表す。近似の誤差で最小値が僅かに負になり得るので 0 で打ち切る。
     # 二次近似が有効なのは近似に使った時間範囲の中だけなので、最小点もその範囲に限定する
     # (範囲外は着弾後や計算打ち切り後の、実在しない弾道への外挿になる)
-    t_min, sq_distance_min = find_minimum_qurtic(a4, a3, a2, a1, a0, bounds=approx_param.x_param.domain)
+    t_min, sq_distance_min = find_minimum_quartic(a4, a3, a2, a1, a0, bounds=approx_param.x_param.domain)
     distance_min = float(np.sqrt(max(sq_distance_min, 0.0)))
     target_pos = (
         t_pos[0] + t_min * t_dir[0],

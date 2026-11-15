@@ -45,7 +45,7 @@ The computation is three nested layers, mirroring README "Procedure" steps 2–4
 - Angle order differs between APIs: the optimizer vector and `OptimizeResult` are `(phi, theta)`; `InitCond` is `(theta, phi, ...)`. Use keyword arguments.
 - `drag_type="pressure"` means drag ∝ |v|² (velocity exponent 1 in the coefficient); `"friction"` means drag ∝ |v| (exponent 0).
 - Launch is always at t = 0: `RuntimeConst.span_end` is only the maximum flight time to simulate, and the initial state assumes the target is at `t_pos` at launch.
-- `find_minimum_qurtic` is the (misspelled) public name; it raises `ValueError` if the leading coefficient is not positive.
+- `find_minimum_quartic` raises `ValueError` if the leading coefficient is not positive.
 
 ## Conventions
 

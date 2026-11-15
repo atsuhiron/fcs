@@ -34,7 +34,7 @@ def plot_rotated_xz(trajectory_result: TrajectoryResult, ap: ApproximateParam) -
     z_fit = reconstruct_quadratic(ap.z_param, t)
     plt.plot(x_fit, z_fit, "-", label="approximation", color="red", lw=2)
 
-    plt.title(f"φ = {np.rad2deg(ap.phi):.2f}° ± {np.rad2deg(ap.phi_std):.2f}°, RMSE_z = {ap.x_param.rmse:.4f}")
+    plt.title(f"φ = {np.rad2deg(ap.phi):.2f}° ± {np.rad2deg(ap.phi_std):.2f}°, RMSE_z = {ap.z_param.rmse:.4f}")
     plt.legend()
     plt.xlabel("X' axis")
     plt.ylabel("Z axis")

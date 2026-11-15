@@ -8,7 +8,7 @@ The specifications for the projectile are as follows:
 - Mass ($m$)
 - Forward-projecting area ($A$)
 - Drag coefficient ($C_D$)
-- Type of drag ($I = 0\ {\rm or}\ 1$)
+- Type of drag ($I$): $I = 1$ for pressure drag, proportional to the square of the velocity (`--drag-type pressure`, default), or $I = 0$ for friction drag, proportional to the velocity (`--drag-type friction`)
 
 The target specifications are as follows:
 - position ($\vec{r_0}$)
@@ -17,8 +17,8 @@ The target specifications are as follows:
 Additionally, the parameters related to air resistance are as follows:
 - Standard density ($D_0 = 1.225\ {\rm kg/m^3}$)
 - Standard temperature ($T_0 = 288.15\ {\rm K}$)
-- Lapse rate ($L = 0.0065$)
-- Scale height ($h_0 = 5.256$)
+- Lapse rate ($L = 0.0065\ {\rm K/m}$)
+- Exponent ($h_0 = 5.256$)
 
 Air density is expressed according to the International Standard Atmosphere (ISA) model 
 using the following equation:
@@ -117,7 +117,7 @@ Solving the following equation will reveal the $t_{\rm apx}$ when the projectile
 \vec{r_0} + t\vec{d} = t\vec{V_0} - \vec{F}
 \end{align}
 ```
-where $\vec{F}$ represents the vector of the total force acting on the projectile. The right side represents the target's predicted trajectory, while the left side represents the projectile's trajectory. If forces other than gravity are ignored, or if air resistance (frictional resistance) is proportional to velocity, this equation can be solved analytically. However, in reality, due to various effects, $\vec{F}$ takes on a complex form and cannot be solved analytically.  
+where $\vec{F}$ represents the vector of the total force acting on the projectile. The left side represents the target's predicted trajectory, while the right side represents the projectile's trajectory. If forces other than gravity are ignored, or if air resistance (frictional resistance) is proportional to velocity, this equation can be solved analytically. However, in reality, due to various effects, $\vec{F}$ takes on a complex form and cannot be solved analytically.  
 Therefore, numerically solve the following system of first-order ordinary differential equations:
 ```math
 \begin{align}
@@ -149,12 +149,12 @@ Use the following values as the initial conditions for the differential equation
 \begin{align}
 \vec{S}_0 = 
 \begin{pmatrix}
--r_x \\
--r_y \\
--r_z \\
+-r_{0x} \\
+-r_{0y} \\
+-r_{0z} \\
 -d_x + V_0\cos{\theta_0}\cos{\phi_0} \\
 -d_y + V_0\cos{\theta_0}\sin{\phi_0} \\
--d_z + V_0\cos{\theta_0}
+-d_z + V_0\sin{\theta_0}
 \end{pmatrix}
 \end{align}
 ```
@@ -186,12 +186,12 @@ z
 \end{pmatrix}
 \end{align}
 ```
-where $R_z(\tilde{\phi})$ is the rotation matrix about the $z$-axis, and $\tilde{\phi}$ is expressed using $\tilde{\vec{r}}_n$, the result of numerical computation, in the following equation.
+where $R_z(\tilde{\phi})$ is the rotation matrix about the $z$-axis, and $\tilde{\phi}$ is expressed using $\vec{B}_n$, the result of numerical computation, in the following equation.
 ```math
 \tilde{\phi} = \arctan \left( \frac{\sum_{i} B_y(\tilde{t}_i)}{\sum_{i} B_x(\tilde{t}_i)} \right)
 ```
 The sum is taken over the points used for the approximation. This is the direction of the sum of their position vectors, so the launch point (the origin, whose azimuth is undefined) has no effect, and the result is not affected by the wrap-around of the angle at $\pm\pi$.
-In this $xyz$ coordinate system, we approximate the trajectory near $\tilde{t}_n$ as follows:
+In this $x'y'z'$ coordinate system, we approximate the trajectory near $\tilde{t}_n$ as follows:
 ```math
 \begin{align}
 \vec{B'}(t) =
@@ -235,15 +235,15 @@ d_z
 t + 
 \begin{pmatrix}
 r_{0x} \\
-r_{0x} \\
-r_{0x}
+r_{0y} \\
+r_{0z}
 \end{pmatrix}
 \right]\right| \\
 
 &= \min_t \left|
 \begin{array}{rrr}
-a_x t^2 & +\left( b_x - d_x \cos \phi - d_y \sin \phi \right)t & +(c_x - r_{0x} \cos \phi - r_{0y} \sin \phi) \\
-& \left(d_x \sin \phi - d_y \cos \phi \right)t & +(r_{0x} \sin \phi - r_{0y} \cos \phi) \\
+a_x t^2 & +\left( b_x - d_x \cos \tilde{\phi} - d_y \sin \tilde{\phi} \right)t & +(c_x - r_{0x} \cos \tilde{\phi} - r_{0y} \sin \tilde{\phi}) \\
+& \left(d_x \sin \tilde{\phi} - d_y \cos \tilde{\phi} \right)t & +(r_{0x} \sin \tilde{\phi} - r_{0y} \cos \tilde{\phi}) \\
 a_z t^2 & + \left(b_z - d_z \right)t & + \left(c_z - r_{0z}\right)
 \end{array}
 \right|

@@ -5,7 +5,7 @@ def _q(x: np.ndarray, a4: float, a3: float, a2: float, a1: float, a0: float) -> 
     return a4 * x**4 + a3 * x**3 + a2 * x**2 + a1 * x + a0
 
 
-def find_minimum_qurtic(  # noqa: PLR0913
+def find_minimum_quartic(  # noqa: PLR0913
     a4: float,
     a3: float,
     a2: float,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     a_arr[0] = np.abs(a_arr[0])
 
     xa = np.linspace(-2, 7, 100)
-    min_x, min_y = find_minimum_qurtic(*a_arr)
+    min_x, min_y = find_minimum_quartic(*a_arr)
 
     plt.plot(xa, _q(xa, *a_arr))
     plt.plot([min_x], _q(np.array([min_x]), *a_arr), "o")

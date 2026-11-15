@@ -18,12 +18,14 @@ def create_init_state(init_cond: InitCond, runtime_const: RuntimeConst) -> State
     )
 
 
-def air_density(z: float, atoms_model: AtmosphereModel) -> float:
-    coef = np.power(1 - (z * atoms_model.lapse_rate / atoms_model.std_temp), atoms_model.index_)
-    return atoms_model.std_density * coef
+def air_density(z: float, atmosphere_model: AtmosphereModel) -> float:
+    coef = np.power(1 - (z * atmosphere_model.lapse_rate / atmosphere_model.std_temp), atmosphere_model.index_)
+    return atmosphere_model.std_density * coef
 
 
-def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel, init_cond: InitCond) -> StateEquation:
+def create_state_eq(
+    runtime_const: RuntimeConst, atmosphere_model: AtmosphereModel, init_cond: InitCond
+) -> StateEquation:
     area = runtime_const.area
     cd = runtime_const.cd
     m = runtime_const.m
@@ -47,7 +49,7 @@ def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel, i
         abs_z = z + t_z0 + t_vz * t
 
         v_norm = np.sqrt(abs_vx**2 + abs_vy**2 + abs_vz**2)
-        k = area * cd * air_density(abs_z, atoms_model) / 2  # 空気抵抗係数
+        k = area * cd * air_density(abs_z, atmosphere_model) / 2  # 空気抵抗係数
         v_coef = k * np.power(v_norm, drag_velocity_index) / m
 
         # 目標は等速直線運動なので、相対加速度は絶対加速度に等しい
@@ -62,13 +64,13 @@ def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel, i
 def solve(
     init_cond: InitCond,
     runtime_const: RuntimeConst,
-    atoms_model: AtmosphereModel,
+    atmosphere_model: AtmosphereModel,
     event: TerminalEvent,
     t_eval: np.ndarray | None = None,
 ) -> TrajectoryResult:
     init_state = create_init_state(init_cond, runtime_const)
     sol = solve_ivp(
-        create_state_eq(runtime_const, atoms_model, init_cond),
+        create_state_eq(runtime_const, atmosphere_model, init_cond),
         (0, runtime_const.span_end),
         init_state,
         t_eval=t_eval,
