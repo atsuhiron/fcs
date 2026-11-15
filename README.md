@@ -159,8 +159,9 @@ z
 ```
 where $R_z(\tilde{\phi})$ is the rotation matrix about the $z$-axis, and $\tilde{\phi}$ is expressed using $\tilde{\vec{r}}_n$, the result of numerical computation, in the following equation.
 ```math
-\tilde{\phi} = \frac{1}{N} \sum_{i=0}^{N} \arctan \left( \frac{B'_y(\tilde{t}_n)}{B'_x(\tilde{t}_n)} \right)
+\tilde{\phi} = \arctan \left( \frac{\sum_{i} B_y(\tilde{t}_i)}{\sum_{i} B_x(\tilde{t}_i)} \right)
 ```
+The sum is taken over the points used for the approximation. This is the direction of the sum of their position vectors, so the launch point (the origin, whose azimuth is undefined) has no effect, and the result is not affected by the wrap-around of the angle at $\pm\pi$.
 In this $xyz$ coordinate system, we approximate the trajectory near $\tilde{t}_n$ as follows:
 ```math
 \begin{align}

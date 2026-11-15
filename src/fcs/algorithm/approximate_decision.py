@@ -78,9 +78,14 @@ def calc_quadratic_param(traj_result: TrajectoryResult) -> ApproximateParam:
     z = slice_adjacent(traj_result.projectile_traj[2], traj_result.approx_index)
     t = slice_adjacent(traj_result.t, traj_result.approx_index)
 
-    phi_arr = np.arctan2(y, x)
-    phi = float(np.mean(phi_arr))
-    phi_std = float(np.std(phi_arr))
+    # 位置ベクトルの和の向きを近似平面の方位角とする。
+    # 各点の方位角を平均すると、発射点 (原点、方位角が定まらない) や ±π の折り返しで値がずれる
+    phi = float(np.arctan2(np.sum(y), np.sum(x)))
+
+    # ばらつきは、原点以外の点の方位角と phi との差 (-π〜π に畳み込む) から求める
+    off_origin = (x != 0) | (y != 0)
+    phi_diff = np.angle(np.exp(1j * (np.arctan2(y[off_origin], x[off_origin]) - phi)))
+    phi_std = float(np.sqrt(np.mean(phi_diff**2))) if phi_diff.size else 0.0
 
     x_rotated, _ = rotate_xy(x, y, -phi)
     poly_param_x = np.polyfit(t, x_rotated, deg=2)
