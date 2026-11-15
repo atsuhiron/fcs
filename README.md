@@ -46,22 +46,22 @@ $ uv sync
 If you can use `uv`, you can run following command:
 ```shell
 $ uv run lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 or not:
 ```shell
 $ python .\src\fcs\main.py 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 Adding the `-r` (`--readable`) option will output the results in a more human-readable format.
 ```shell
 $ lead -r 0.1 0.001 0.1 300 100 100 100 -10 1 0
-phi: 46.95°, theta: 40.98°, dist: 0.00, eta_time: 642.33 ms, calc_time: 35.51 ms
+phi: 46.95°, theta: 36.46°, dist: 0.00, eta_time: 601.31 ms, calc_time: 35.51 ms
 ``` 
 Adding the `--plot` option will show trajectory of projectile and target.
 ```shell
 $ lead --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 40.98 0.00 642.33 43.00
+46.95 36.46 0.00 601.31 43.00
 ``` 
 ![calculated_trajectory](images/trajectory_3d.png)
 
@@ -105,15 +105,15 @@ v_z
 v_x \\
 v_y \\
 v_z \\
--Cv_x \\
--Cv_y \\
--Cv_z - g/m
+-C(v_x + d_x) \\
+-C(v_y + d_y) \\
+-C(v_z + d_z) - g
 \end{pmatrix}
 \end{align}
 ```
-where $C$ is the air resistance coefficient and follows the following equation.
+Here $\vec{S}$ is the state of the projectile relative to the target. Air resistance, however, depends on the motion relative to the air, so it is evaluated with the absolute velocity $\vec{v} + \vec{d}$ and the absolute altitude $z + r_{0z} + d_z t$ of the projectile. $C$ is the air resistance coefficient and follows the following equation.
 ```math
-C = \frac{AC_DD(z)|\vec{v}|^{I}}{2m}
+C = \frac{AC_DD(z + r_{0z} + d_z t)|\vec{v} + \vec{d}|^{I}}{2m}
 ```
 Use the following values as the initial conditions for the differential equation:
 ```math

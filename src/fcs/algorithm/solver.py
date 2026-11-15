@@ -23,10 +23,12 @@ def air_density(z: float, atoms_model: AtmosphereModel) -> float:
     return atoms_model.std_density * coef
 
 
-def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel) -> StateEquation:
+def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel, init_cond: InitCond) -> StateEquation:
     area = runtime_const.area
     cd = runtime_const.cd
     m = runtime_const.m
+    t_z0 = init_cond.t_pos[2]
+    t_vx, t_vy, t_vz = init_cond.t_dir
     match runtime_const.drag_type:
         case "pressure":
             drag_velocity_index = 1
@@ -35,16 +37,23 @@ def create_state_eq(runtime_const: RuntimeConst, atoms_model: AtmosphereModel) -
         case _:
             raise ValueError(runtime_const.drag_type)
 
-    def state_eq(_: float, state: State) -> tuple[float, float, float, float, float, float]:
+    def state_eq(t: float, state: State) -> tuple[float, float, float, float, float, float]:
         _, _, z, vx, vy, vz = state
 
-        v_norm = np.sqrt(vx**2 + vy**2 + vz**2)
-        k = area * cd * air_density(z, atoms_model) / 2  # 空気抵抗係数
+        # 状態は目標相対系なので、空気抵抗と大気密度は絶対系 (対気速度・絶対高度) に戻して計算する
+        abs_vx = vx + t_vx
+        abs_vy = vy + t_vy
+        abs_vz = vz + t_vz
+        abs_z = z + t_z0 + t_vz * t
+
+        v_norm = np.sqrt(abs_vx**2 + abs_vy**2 + abs_vz**2)
+        k = area * cd * air_density(abs_z, atoms_model) / 2  # 空気抵抗係数
         v_coef = k * np.power(v_norm, drag_velocity_index) / m
 
-        ax = -v_coef * vx
-        ay = -v_coef * vy
-        az = -v_coef * vz - g / m
+        # 目標は等速直線運動なので、相対加速度は絶対加速度に等しい
+        ax = -v_coef * abs_vx
+        ay = -v_coef * abs_vy
+        az = -v_coef * abs_vz - g
         return vx, vy, vz, ax, ay, az
 
     return state_eq
@@ -59,7 +68,7 @@ def solve(
 ) -> TrajectoryResult:
     init_state = create_init_state(init_cond, runtime_const)
     sol = solve_ivp(
-        create_state_eq(runtime_const, atoms_model),
+        create_state_eq(runtime_const, atoms_model, init_cond),
         runtime_const.span,
         init_state,
         t_eval=t_eval,
