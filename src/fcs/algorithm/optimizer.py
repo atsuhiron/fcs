@@ -18,6 +18,8 @@ from fcs.type import (
 )
 
 MAX_EVALUATIONS = 300
+INITIAL_STEP = 0.02  # rad
+SEARCH_TOLERANCE = 1e-6
 
 
 def _create_evaluator(
@@ -68,21 +70,36 @@ def run_optimization(
     evaluate = _create_evaluator(runtime_const, t_pos, t_dir, atmosphere_model)
     initial_phi, initial_theta = _initial_phi_theta(t_pos)
 
-    result = minimize(
-        lambda phi_theta: evaluate(phi_theta)[0].distance ** 2,  # 距離の2乗は最小点の近くでも滑らか
-        x0=np.array([initial_phi, initial_theta]),
-        # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む。
+    def clip_theta(theta: float) -> float:
         # theta は天頂 (pi/2) を越えて反対側まで動けるようにする。天頂では phi を変えても弾道が変わらないため、
         # 上限を pi/2 にすると、phi が逆向きのまま天頂に達したときにそこから動けなくなる
-        bounds=[(None, None), (0, np.pi)],
-        method="L-BFGS-B",
-        # 命中する場合は 200 回未満で収束する。届かない目標で探索が長引くのを防ぐ
-        options={"maxfun": MAX_EVALUATIONS},
+        return min(max(float(theta), 0.0), float(np.pi))
+
+    def squared_distance(phi_theta: np.ndarray) -> float:
+        # 距離の2乗は最小点の近くでも滑らか
+        return evaluate((float(phi_theta[0]), clip_theta(phi_theta[1])))[0].distance ** 2
+
+    result = minimize(
+        squared_distance,
+        x0=np.array([initial_phi, initial_theta]),
+        # phi は周期的なので制限せず、結果を (-pi, pi] に畳み込む。
+        # theta の範囲は bounds ではなく目的関数の中で制限する。bounds を渡すと一次元探索が
+        # 区間全体を対象にして、別の谷へ飛んでしまう
+        method="Powell",
+        options={
+            # 解は初期値 (目標の現在位置の方向) から数度以内にあることが多い。既定の 1 rad では大きすぎて命中を逃す
+            "direc": np.eye(2) * INITIAL_STEP,
+            "xtol": SEARCH_TOLERANCE,
+            "ftol": SEARCH_TOLERANCE,
+            # 命中する場合はほぼ 300 回未満で収束する。届かない目標で探索が長引くのを防ぐ
+            "maxfev": MAX_EVALUATIONS,
+        },
     )
 
-    # result.success は命中かどうかと対応しない (命中後に直線探索が異常終了する、
-    # 届かないまま「収束」する、のどちらもある) ので、最接近距離そのもので判定する
-    optimized_phi, optimized_theta = (float(x) for x in result.x)
+    # result.success は命中かどうかと対応しない (評価回数の上限に達しても命中していることがあり、
+    # 届かないまま「収束」することもある) ので、最接近距離そのもので判定する
+    optimized_phi = float(result.x[0])
+    optimized_theta = clip_theta(result.x[1])
     if optimized_theta > np.pi / 2:
         # 天頂を越えた向きは、方位角を反転して仰角を折り返した向きと同じ
         optimized_phi += np.pi
