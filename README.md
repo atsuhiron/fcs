@@ -2,6 +2,13 @@
 Based on the target's position and velocity information,
 it calculates the aiming data required to make the projectile collide with the target.
 
+> [!NOTE]
+> A Rust version, [fcs-rs](https://github.com/atsuhiron/fcs-rs), runs the same algorithm as a single binary
+> and is over 100 times faster. Use it for the calculation itself.
+> This repository is the reference implementation: it holds the derivation of the mathematical model (below),
+> generates the reference data that fcs-rs is tested against, and does the plotting.
+> It is frozen and changes only when the algorithm itself changes.
+
 ## Input Data
 The specifications for the projectile are as follows:
 - Initial velocity ($V_0$)
@@ -46,24 +53,37 @@ $ uv sync
 If you can use `uv`, you can run following command:
 ```shell
 $ uv run lead 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 36.46 0.00 601.31 43.00
+46.95 36.46 0.00 601.31 158.00
 ``` 
 or not:
 ```shell
 $ python .\src\fcs\main.py 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 36.46 0.00 601.31 43.00
+46.95 36.46 0.00 601.31 158.00
 ``` 
 Adding the `-r` (`--readable`) option will output the results in a more human-readable format.
 ```shell
 $ lead -r 0.1 0.001 0.1 300 100 100 100 -10 1 0
-phi: 46.95°, theta: 36.46°, dist: 0.00, eta_time: 601.31 ms, calc_time: 35.51 ms
+phi: 46.95°, theta: 36.46°, dist: 0.00, eta_time: 601.31 ms, calc_time: 158.00 ms
 ``` 
 Adding the `--plot` option will show trajectory of projectile and target.
 ```shell
 $ lead --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0
-46.95 36.46 0.00 601.31 43.00
+46.95 36.46 0.00 601.31 158.00
 ``` 
 ![calculated_trajectory](images/trajectory_3d.png)
+
+### With the Rust version
+The `lead` command of [fcs-rs](https://github.com/atsuhiron/fcs-rs) takes the same arguments and gives the same output and exit statuses.
+It has no `--plot`; instead it writes the trajectory to a file with `--dump`, which this repository can plot:
+```shell
+$ lead --dump trajectory.json 0.1 0.001 0.1 300 100 100 100 -10 1 0
+46.95 36.46 0.00 601.31 1.24
+$ uv run python -m fcs.scripts.plot_dump trajectory.json
+```
+The reference data for the tests of fcs-rs is generated here (it takes about a minute):
+```shell
+$ uv run python -m fcs.scripts.dump_fixtures <path to fcs-rs>/tests/fixtures
+```
 
 ### Exit status
 The result counts as a hit when the closest distance between the projectile and the target is within `--tolerance` (default: 0.1 m).
@@ -80,7 +100,7 @@ The exit status tells whether the projectile hits the target, and why not if it 
 For 3 and 4, the result for the closest approach is still printed to stdout, and `lead: <name>: <message>` is written to stderr.
 ```shell
 $ lead 0.1 0.001 0.1 300 4000 0 500 0 50 0
-7.13 14.48 2403.53 10000.00 47.92
+7.13 14.48 2403.53 10000.00 208.00
 lead: out_of_time: the projectile does not reach the target within --span-end
 ```
 The following arguments are rejected with exit status 2, and nothing is printed to stdout:
