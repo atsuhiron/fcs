@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `fcs` is a fire-control (lead) calculator: given projectile specs and a target's position and constant velocity, it finds the azimuth/elevation that makes the projectile's trajectory (with altitude-dependent air drag) pass closest to the target. `README.md` holds the full mathematical derivation and is the specification for the algorithm — keep it in sync when the maths changes.
 
+A Rust port, [fcs-rs](https://github.com/atsuhiron/fcs-rs), is the version meant for actual use. This repository is its frozen reference implementation: fcs-rs is tested against data generated here (`fcs.scripts.dump_fixtures`), and plotting stays here (`fcs.scripts.plot_dump`). Change the algorithm only together with fcs-rs: change it here first, regenerate the fixtures, then port. `docs/rust-migration-plan.md` records the plan and its results (in Japanese).
+
 ## Commands
 
 Python 3.13, managed with `uv`. The package uses a `src/` layout and must be installed (which `uv sync` / `uv run` do) for the `fcs.*` imports to resolve.
@@ -27,6 +29,7 @@ uv run lead -r --plot 0.1 0.001 0.1 300 100 100 100 -10 1 0   # human-readable o
 uv run python -m fcs.scripts.show_trajectory_samples     # drag-model comparison plot (source of images/trajectory_sample.png)
 uv run python -m fcs.algorithm.quartic_minimum           # visual sanity check of the quartic minimiser
 uv run python -m fcs.scripts.dump_fixtures <output_dir>  # reference data (JSON) for the Rust port's tests, ~1 min
+uv run python -m fcs.scripts.plot_dump <path>            # 3D plot of a file written by the Rust version's `lead --dump`
 ```
 
 There is no test suite. The README example above (expected `46.95 36.46 0.00 601.31 <calc_time>`) is the only regression reference. `--plot` and the scripts open blocking matplotlib windows.
